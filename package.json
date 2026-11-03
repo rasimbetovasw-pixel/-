@@ -1,8 +1,0 @@
-{
-  "name": "tusinikti-matematika",
-  "private": true,
-  "scripts": {
-    "dev": "vercel dev"
-  }
-}
-

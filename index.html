@@ -56,13 +56,13 @@
     </section>
 
     <section class="ai-tutor section" id="ai-tutor">
-      <div class="ai-heading"><div><div class="section-kicker">ИИ КӨМЕКШІ · ТӘУЛІК БОЙЫ</div><h2>Тұрып қалған есепті<br><em>бірге шеш.</em></h2><p>Есебіңді немесе түсінбеген жеріңді жаз. Көмекші бірден жауабын тықпаламай, алдымен келесі қадамыңды табуға жетелейді.</p><div class="ai-pills"><span>Қазақша түсіндіреді</span><span>Қадамдап үйретеді</span><span>Қате болса, байыппен талдайды</span></div></div><div class="ai-mark" aria-hidden="true"><span>∑</span><i>✳</i><b>сұра да, түсін</b></div></div>
+      <div class="ai-heading"><div><div class="section-kicker">ҚҰРЫЛҒЫҢДА ЖҰМЫС ІСТЕЙДІ · АШЫҚ МОДЕЛЬ</div><h2>Тұрып қалған есепті<br><em>бірге шеш.</em></h2><p>Есебіңді немесе түсінбеген жеріңді жаз. Ашық математикалық модель браузеріңде іске қосылады: API кілті жоқ, сұрақтарың серверге жіберілмейді.</p><div class="ai-pills"><span>Қазақша түсіндіреді</span><span>Қадамдап үйретеді</span><span>Дерек құрылғыңда қалады</span></div></div><div class="ai-mark" aria-hidden="true"><span>∑</span><i>✳</i><b>сұра да, түсін</b></div></div>
       <div class="ai-chat">
-        <div class="chat-top"><span class="ai-avatar">∑</span><div><b>Математика көмекшісі</b><small><i></i> Сабаққа дайынмын</small></div><button id="clear-chat" type="button">Тазарту ↺</button></div>
-        <div class="chat-messages" id="chat-messages" aria-live="polite" aria-label="Әңгіме"><div class="chat-bubble assistant"><span>Көмекші</span><p>Сәлем! Қай есепке тоқтап қалдың? Есептің шартын жібер немесе төменнен тақырып таңда. Бірге қадамдап талдаймыз 🙂</p></div></div>
-        <div class="chat-suggestions"><button type="button" data-prompt="x² − 4x + 3 = 0 теңдеуін қадамдап түсіндірші">Квадрат теңдеу</button><button type="button" data-prompt="Бөлшектерді қосу ережесін қарапайым мысалмен үйретші">Бөлшектер</button><button type="button" data-prompt="Пайызды қалай табамыз? Мысалмен түсіндірші">Пайыз</button></div>
-        <form class="chat-form" id="chat-form"><label class="sr-only" for="chat-input">Есебіңді немесе сұрағыңды жаз</label><textarea id="chat-input" rows="1" maxlength="1000" placeholder="Есебіңді немесе сұрағыңды жаз…" required></textarea><button type="submit" aria-label="Жіберу">↑</button></form>
-        <div class="chat-foot"><span id="chat-status">1000 таңбаға дейін</span><span>Жеке дерек жазба. ИИ жауабын есептеп тексер.</span></div>
+        <div class="chat-top"><span class="ai-avatar">∑</span><div><b>Математика көмекшісі</b><small id="ai-engine-state"><i></i> ИИ жүктелмеген</small></div><button class="ai-start-button" id="ai-start-button" type="button">ИИ-ді қосу ↓</button><button id="clear-chat" type="button">Тазарту ↺</button></div>
+        <div class="chat-messages" id="chat-messages" aria-live="polite" aria-label="Әңгіме"><div class="chat-bubble assistant"><span>Көмекші</span><p>Сәлем! Алдымен «ИИ-ді қосу» батырмасын бас. Математикалық модель құрылғыңа жүктелген соң, есепті бірге талдаймыз 🙂</p></div></div>
+        <div class="chat-suggestions"><button type="button" data-prompt="x² − 4x + 3 = 0 теңдеуін қадамдап түсіндірші" disabled>Квадрат теңдеу</button><button type="button" data-prompt="Бөлшектерді қосу ережесін қарапайым мысалмен үйретші" disabled>Бөлшектер</button><button type="button" data-prompt="Пайызды қалай табамыз? Мысалмен түсіндірші" disabled>Пайыз</button></div>
+        <form class="chat-form" id="chat-form"><label class="sr-only" for="chat-input">Есебіңді немесе сұрағыңды жаз</label><textarea id="chat-input" rows="1" maxlength="1000" placeholder="Алдымен ИИ-ді қос…" required disabled></textarea><button type="submit" aria-label="Жіберу" disabled>↑</button></form>
+        <div class="chat-foot"><span id="chat-status">Алғашқы қосқанда модель жүктеледі</span><span>Алғашқы жүктеуге интернет пен бос жад керек · сұрақтар құрылғыңда өңделеді</span></div>
       </div>
     </section>
 

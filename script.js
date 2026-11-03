@@ -128,6 +128,64 @@ const chatInput = document.querySelector('#chat-input');
 const chatMessages = document.querySelector('#chat-messages');
 const chatStatus = document.querySelector('#chat-status');
 const chatHistory = [];
+const aiStartButton = document.querySelector('#ai-start-button');
+const aiEngineState = document.querySelector('#ai-engine-state');
+const chatSendButton = chatForm.querySelector('button');
+const chatSuggestions = [...document.querySelectorAll('.chat-suggestions button')];
+let localEngine = null;
+let engineLoading = false;
+function setEngineState(message, ready = false) {
+  aiEngineState.lastChild.textContent = ` ${message}`;
+  aiEngineState.classList.toggle('ready', ready);
+}
+async function startLocalAI() {
+  if (localEngine || engineLoading) return;
+  if (!navigator.gpu) {
+    setEngineState('Бұл браузерде WebGPU жоқ');
+    chatStatus.textContent = 'Соңғы Google Chrome қолданып, браузер баптауынан графикалық үдетуді қос.';
+    addChatBubble('assistant', 'Бұл құрылғы не браузер WebGPU қолдамайды. Соңғы Chrome нұсқасын ашып, графикалық үдетуді қосып көр. Кейбір құрылғыларда бұл модель жұмыс істемеуі мүмкін.', 'Жүйе');
+    return;
+  }
+  engineLoading = true;
+  aiStartButton.disabled = true;
+  aiStartButton.textContent = 'Жүктелуде…';
+  setEngineState('Браузерге модель жүктеліп жатыр');
+  chatStatus.textContent = 'Алғашқы жүктеу біраз уақыт алады. Осы бетті жаппай күте тұр.';
+  try {
+    const webllm = await import('https://esm.run/@mlc-ai/web-llm@0.2.87');
+    const worker = new Worker(new URL('./webllm-worker.js', document.baseURI), { type: 'module' });
+    localEngine = await webllm.CreateWebWorkerMLCEngine(
+      worker,
+      'Qwen2.5-Math-1.5B-Instruct-q4f16_1-MLC',
+      {
+        initProgressCallback: report => {
+          const progressText = report?.text || 'Модель жүктеліп жатыр…';
+          chatStatus.textContent = progressText;
+          setEngineState(progressText.slice(0, 58));
+        },
+      },
+      { context_window_size: 4096 },
+    );
+    setEngineState('Жұмысқа дайын', true);
+    aiStartButton.textContent = 'ИИ қосылды ✓';
+    aiStartButton.classList.add('is-ready');
+    chatInput.disabled = false;
+    chatInput.placeholder = 'Есебіңді немесе сұрағыңды жаз…';
+    chatSendButton.disabled = false;
+    chatSuggestions.forEach(button => { button.disabled = false; });
+    chatStatus.textContent = 'Модель осы браузерде жұмыс істейді; есептер серверге жіберілмейді.';
+  } catch (error) {
+    localEngine = null;
+    setEngineState('Қосу сәтсіз аяқталды');
+    aiStartButton.disabled = false;
+    aiStartButton.textContent = 'Қайта жүктеу ↻';
+    chatStatus.textContent = 'Интернетті, бос жадты және браузердің WebGPU қолдауын тексеріп, қайта байқап көр.';
+    addChatBubble('assistant', 'Модель жүктелмеді. Интернет байланысын, браузердің WebGPU қолдауын және құрылғыдағы бос жадты тексеріп, қайта қосып көр.', 'Жүйе');
+  } finally {
+    engineLoading = false;
+  }
+}
+aiStartButton.addEventListener('click', startLocalAI);
 function addChatBubble(role, message, label, extraClass = '') {
   const bubble = document.createElement('div');
   bubble.className = `chat-bubble ${role} ${extraClass}`.trim();
@@ -141,37 +199,39 @@ function addChatBubble(role, message, label, extraClass = '') {
   return bubble;
 }
 async function askTutor(message) {
-  if (!message || chatForm.querySelector('button').disabled) return;
+  if (!message || chatSendButton.disabled || !localEngine) return;
   addChatBubble('user', message, 'Сен');
   chatHistory.push({ role: 'user', content: message });
-  const button = chatForm.querySelector('button');
-  const suggestionButtons = document.querySelectorAll('.chat-suggestions button');
-  button.disabled = true;
+  chatSendButton.disabled = true;
   chatInput.disabled = true;
-  suggestionButtons.forEach(item => { item.disabled = true; });
+  chatSuggestions.forEach(item => { item.disabled = true; });
   chatStatus.textContent = 'Көмекші ойланып жатыр…';
   const waiting = addChatBubble('assistant', 'Сұрағыңды қарап жатырмын…', 'Көмекші', 'thinking');
   try {
-    const response = await fetch('/api/tutor', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages: chatHistory.slice(-12) }),
+    const response = await localEngine.chat.completions.create({
+      messages: [
+        {
+          role: 'system',
+          content: 'Сен Қазақстандағы 5–11 сынып оқушыларына көмектесетін әдепті, шыдамды математика мұғалімісің. Әдетте қазақша жауап бер. Есепті түсінікті шағын қадамдарға бөліп шығар: формуланы жаз, мәндерді қойып, жауабын тексер. Алдымен қысқа ишара беріп, оқушы сұраса толық шешімін түсіндір. Қате болса, байыппен түзет. Белгісіз шартты нақтылап сұра. Жеке дерек сұрама. Математикаға қатыссыз ұзақ әңгімеге оралмай, математикаға көмектес.',
+        },
+        ...chatHistory.slice(-10),
+      ],
+      max_tokens: 420,
+      temperature: 0.35,
     });
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(data.error || 'Көмекшіге әзірше қосылу мүмкін болмады.');
     waiting.remove();
-    const reply = data.reply || 'Жауап дайындау мүмкін болмады. Сұрағыңды басқаша жазып көр.';
+    const reply = response.choices?.[0]?.message?.content || 'Жауап дайындау мүмкін болмады. Сұрағыңды басқаша жазып көр.';
     chatHistory.push({ role: 'assistant', content: reply });
     addChatBubble('assistant', reply, 'Көмекші');
     chatStatus.textContent = `${chatInput.maxLength} таңбаға дейін`;
-  } catch (error) {
+  } catch {
     waiting.remove();
-    addChatBubble('assistant', error.message.includes('Failed to fetch') ? 'Бұл беттің ИИ бөлігі сервер арқылы жұмыс істейді. Сайтты Vercel сияқты қызметке жариялап, API кілтін сервер баптауына қосу керек.' : error.message, 'Көмекші');
-    chatStatus.textContent = 'Қосылымды тексеріп, қайта көр.';
+    addChatBubble('assistant', 'Жауап дайындау кезінде қате болды. Бетті жаңартып, ИИ-ді қайта жүктеп көр.', 'Көмекші');
+    chatStatus.textContent = 'Жүктелген модельді қайта қосып көр.';
   } finally {
-    button.disabled = false;
+    chatSendButton.disabled = false;
     chatInput.disabled = false;
-    suggestionButtons.forEach(item => { item.disabled = false; });
+    chatSuggestions.forEach(item => { item.disabled = false; });
     chatInput.focus();
     chatMessages.scrollTop = chatMessages.scrollHeight;
   }
@@ -187,14 +247,14 @@ chatInput.addEventListener('input', () => {
   chatInput.style.height = 'auto';
   chatInput.style.height = `${Math.min(chatInput.scrollHeight, 88)}px`;
 });
-document.querySelectorAll('.chat-suggestions button').forEach(button => {
+chatSuggestions.forEach(button => {
   button.addEventListener('click', () => askTutor(button.dataset.prompt));
 });
 document.querySelector('#clear-chat').addEventListener('click', () => {
   chatHistory.length = 0;
   chatMessages.innerHTML = '';
-  addChatBubble('assistant', 'Сәлем! Қай есепке тоқтап қалдың? Есептің шартын жібер немесе төменнен тақырып таңда. Бірге қадамдап талдаймыз 🙂', 'Көмекші');
-  chatStatus.textContent = `${chatInput.maxLength} таңбаға дейін`;
+  addChatBubble('assistant', localEngine ? 'Әңгіме тазартылды. Келесі есепті жібере бер!' : 'Сәлем! Алдымен «ИИ-ді қосу» батырмасын басып, модельді жүктеп ал.', 'Көмекші');
+  chatStatus.textContent = localEngine ? 'Модель осы браузерде іске қосулы.' : 'Алғашқы қосқанда модель жүктеледі.';
 });
 
 document.querySelector('#contact-form').addEventListener('submit', event => {
