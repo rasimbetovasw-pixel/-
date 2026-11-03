@@ -133,6 +133,7 @@ const aiEngineState = document.querySelector('#ai-engine-state');
 const chatSendButton = chatForm.querySelector('button');
 const chatSuggestions = [...document.querySelectorAll('.chat-suggestions button')];
 let localEngine = null;
+let modelWorker = null;
 let engineLoading = false;
 function setEngineState(message, ready = false) {
   aiEngineState.lastChild.textContent = ` ${message}`;
@@ -153,9 +154,9 @@ async function startLocalAI() {
   chatStatus.textContent = 'Алғашқы жүктеу біраз уақыт алады. Осы бетті жаппай күте тұр.';
   try {
     const webllm = await import('https://esm.run/@mlc-ai/web-llm@0.2.87');
-    const worker = new Worker(new URL('./webllm-worker.js', document.baseURI), { type: 'module' });
+    modelWorker = new Worker(new URL('./webllm-worker.js', document.baseURI), { type: 'module' });
     localEngine = await webllm.CreateWebWorkerMLCEngine(
-      worker,
+      modelWorker,
       'Qwen2.5-Math-1.5B-Instruct-q4f16_1-MLC',
       {
         initProgressCallback: report => {
@@ -176,6 +177,8 @@ async function startLocalAI() {
     chatStatus.textContent = 'Модель осы браузерде жұмыс істейді; есептер серверге жіберілмейді.';
   } catch (error) {
     localEngine = null;
+    modelWorker?.terminate();
+    modelWorker = null;
     setEngineState('Қосу сәтсіз аяқталды');
     aiStartButton.disabled = false;
     aiStartButton.textContent = 'Қайта жүктеу ↻';
